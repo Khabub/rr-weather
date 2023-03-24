@@ -1,12 +1,14 @@
 <template>
-  <main>
-    <v-form class="form" submit.prevent>
+  <TheNavigation />
+  <main class="container">
+    <v-form class="form" @submit.prevent>
       <v-text-field
         class="search-city"
         label="Enter city"
         density="compact"
         variant="outlined"
         v-model="select"
+        v-on:keyup.enter="submitHandler"
         @focus="
           select = '';
           places.length = 0;
@@ -20,58 +22,127 @@
         @click="submitHandler"
         >Confirm</v-btn
       >
-    </v-form>
-    <div v-if="places.length > 0" class="city-list">
-      <h1>Choose city:</h1>  
-      <ul v-for="place, index in places" :key="index">
-        <CityButton :place="place" @click="cityButtonHandler(index)"/>
-      </ul>
+    </v-form>  
+
+    <div v-if="isCityListActive">
+      <div v-if="places.length > 0" class="city-list">
+        <h1>Choose city:</h1>
+        <ul v-for="(item, index) in places" :key="index">
+          <CityButton
+            :name="item.name"
+            :country_code="item.country_code"
+            @click="cityButtonHandler(index)"
+          />
+        </ul>
+      </div>
     </div>
+    <section v-for="(city, index) in dbList" :key="index">
+      <CityCard
+        :city="city.city"
+        :country_code="city.country_code"
+        :highestTemp="city.highest_temp"
+        :lowestTemp="city.lowest_temp"
+      />
+    </section>
   </main>
 </template>
 
 <script setup lang="ts">
+import axios from "axios";
 import { useWeatherStore } from "./stores/weather";
 import { storeToRefs } from "pinia";
+import { onBeforeMount, onUpdated, reactive, ref } from "vue";
 import CityButton from "@/components/UI/CityButton.vue";
+import CityCard from "./components/UI/CityCard.vue";
+import TheNavigation from "./components/TheNavigation.vue";
 
+interface DBListInterface {
+  city: string;
+  country_code: string;
+  label: string;
+  highest_temp: number;
+  lowest_temp: number;
+  latitude: number;
+  longitude: number;
+}
+
+// variables
 const store = useWeatherStore();
 const { getCities } = store;
 const { select, checkConfirm, places } = storeToRefs(store);
+const dbList: DBListInterface[] = reactive([]);
+const isCityListActive = ref(true);
 
+// actions
 const submitHandler = () => {
-  getCities();
+  isCityListActive.value = true;
+  getCities(select.value);
 };
 
-const cityButtonHandler = (index: number) => {
-  console.log(places.value[index])
-}
+// after click, add the city to dbList
+const cityButtonHandler = (index: number) => {  
+  isCityListActive.value = false;   // hide the list
+  select.value = "";    // clear the input
+  const tmp = places.value[index];
 
-/* const loadAPI = async () => {
-  const urlW = ref(
-    `https://api.open-meteo.com/v1/forecast?latitude=${lat.value}&longitude=${long.value}&daily=temperature_2m_max,temperature_2m_min&current_weather=true&timezone=Europe%2FMoscow`
-  );
-  const response = await axios.get(urlW.value);
-  console.log(response.data);
+  (async () => {
+    const url = ref(
+      `https://api.open-meteo.com/v1/forecast?latitude=${tmp.latitude}&longitude=${tmp.longitude}&daily=temperature_2m_max,temperature_2m_min&current_weather=true&timezone=Europe%2FMoscow`
+    );
+    const response = await axios.get(url.value);    
 
-  //day.value = response.data.current_weather.temperature;
- // nejvyssi.value = response.data.daily.temperature_2m_max[1];
-}; */
+    dbList.push({
+      city: tmp.name,
+      country_code: tmp.country_code,
+      label: tmp.label,
+      highest_temp: response.data.daily.temperature_2m_max[0],
+      lowest_temp: response.data.daily.temperature_2m_min[0],
+      latitude: tmp.latitude,
+      longitude: tmp.longitude,
+    });
+  })();
 
-/* watch(
-  () => search.value,
-  (newValue) => {    
-    newValue && newValue !== select.value && querySelections(newValue);
+  
+};
+
+onBeforeMount(() => {
+  // load data from localStorage
+  const listTmp = window.localStorage.getItem("rrdbListCities") as string;
+  if (listTmp) {
+    const parsed = JSON.parse(listTmp);
+    dbList.splice(0, parsed.length, ...parsed);
   }
-);
+  isCityListActive.value = false;   // hide the list
 
-const querySelections = (v: string) => {
-  loading.value = true;
-  setTimeout(() => {
-    v.length > 2 && getIstanbul(v);
-    loading.value = false;    
-  }, 500);
-}; */
+  dbList.forEach((val: DBListInterface) => {
+    getCities(val.city);    // get data from web
+
+    // find the same city from localStorage
+    const labelIndex = places.value.findIndex(
+      (item) => item.label === val.label
+    );
+
+    if (labelIndex >= 0) {
+      const tmp = places.value[labelIndex];
+
+      // get temps
+      (async () => {
+        const url = ref(
+          `https://api.open-meteo.com/v1/forecast?latitude=${tmp.latitude}&longitude=${tmp.longitude}&daily=temperature_2m_max,temperature_2m_min&current_weather=true&timezone=Europe%2FMoscow`
+        );
+        const response = await axios.get(url.value);
+
+        // set temps
+        val.highest_temp = response.data.daily.temperature_2m_max[0];
+        val.lowest_temp = response.data.daily.temperature_2m_min[0];
+      })();
+    }
+  });
+});
+
+onUpdated(() => {
+  window.localStorage.setItem("rrdbListCities", JSON.stringify(dbList));
+});
 
 // aktuálně
 /* const getLocation = () => {
@@ -96,7 +167,7 @@ const querySelections = (v: string) => {
 </script>
 
 <style scoped>
-main {
+.container {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -106,7 +177,7 @@ main {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 2rem;
+  margin-top: 2.5rem;
   width: 90vw;
 }
 
@@ -124,5 +195,8 @@ h1 {
   display: flex;
   flex-direction: column;
   width: 90vw;
+}
+.cityCardSection {
+  display: flex;
 }
 </style>

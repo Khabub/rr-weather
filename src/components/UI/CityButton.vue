@@ -1,25 +1,24 @@
 <template>
-  <li> 
+  <li>
     <v-btn class="button-city" variant="tonal" density="compact">
-      {{props.place}}
-    </v-btn>         
-       
+      {{ props.name }} ({{ props.country_code }})
+    </v-btn>
   </li>
 </template>
 
 <script setup lang="ts">
-import type { PropType } from 'vue';
+import type { PropType } from "vue";
 
 const props = defineProps({
-  place: String as PropType<string>
-})
-
+  name: String as PropType<string>,
+  country_code: String as PropType<string>,
+});
 </script>
 
 <style scoped>
-
 .button-city {
-  width: 90vw;
+  font-size: 0.6rem;
+  width: 95vw;
   display: flex;
   justify-content: flex-start;
   margin-bottom: 0.5rem;
