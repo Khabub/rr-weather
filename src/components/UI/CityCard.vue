@@ -2,7 +2,7 @@
   <slot>
     <main class="container">
       <div class="city-country">
-        <p class="city-text">{{ props.city }}</p>        
+        <p class="city-text">{{ props.city }}</p>
       </div>
       <div class="teploty">
         <p>
@@ -12,24 +12,33 @@
           Lowest: <span>{{ props.lowestTemp }}°C</span>
         </p>
       </div>
-      <SvgIcon class="cancel" type="mdi" :path="path"/>
+      <SvgIcon
+        class="cancel"
+        @click="emit('deleteCity', props.place_id as string)"
+        type="mdi"
+        :path="path"
+      />
     </main>
   </slot>
 </template>
 
 <script setup lang="ts">
 import type { PropType } from "vue";
-import SvgIcon from '@jamescoyle/vue-icon';
-import { mdiClose } from '@mdi/js';
+import SvgIcon from "@jamescoyle/vue-icon";
+import { mdiClose } from "@mdi/js";
 
 const path = mdiClose;
 
 const props = defineProps({
-  city: String as PropType<string>,
-  country_code: String as PropType<string>,
+  city: String as PropType<string>,  
   highestTemp: Number as PropType<number>,
   lowestTemp: Number as PropType<number>,
+  place_id: String as PropType<string>,
 });
+
+const emit = defineEmits<{
+  (event: "deleteCity", id: string): void;
+}>();
 </script>
 
 <style scoped>
@@ -40,7 +49,7 @@ const props = defineProps({
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background-color: #e4dba9;  
+  background-color: #e4dba9;
   margin-top: 1rem;
   position: relative;
   padding: 0.3rem 0;
@@ -49,13 +58,13 @@ const props = defineProps({
 .teploty {
   display: flex;
   justify-content: space-evenly;
-  align-items: center;  
-  font-size: 0.7rem;  
+  align-items: center;
+  font-size: 0.7rem;
 }
 .city-country {
-  display: flex;  
+  display: flex;
   justify-content: center;
-  align-items: center;  
+  align-items: center;
 }
 
 .city-text {

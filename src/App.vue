@@ -4,7 +4,7 @@
     <v-form class="form" @submit.prevent>
       <v-text-field
         class="search-city"
-        label="Enter city"
+        label="Enter address"
         density="compact"
         variant="outlined"
         v-model="select"
@@ -26,7 +26,7 @@
 
     <div v-if="isCityListActive">
       <div v-if="places.length > 0" class="city-list">
-        <h1>Choose city:</h1>
+        <h1>Choose address:</h1>
         <ul v-for="(item, index) in places" :key="index">
           <CityButton
             :name="item.formatted_address"
@@ -45,8 +45,21 @@
         :city="city.formatted_address"
         :highestTemp="city.highest_temp"
         :lowestTemp="city.lowest_temp"
+        :place_id="city.place_id"
+        @deleteCity="deleteCity"
       />
     </section>
+
+    <v-snackbar
+      color="success"
+      min-width="100"
+      v-model="snackbar"
+      :timeout="timeout"
+    >
+      Temps updated!
+    </v-snackbar>
+
+
   </main>
 </template>
 
@@ -54,7 +67,7 @@
 import axios from "axios";
 import { useWeatherStore } from "./stores/weather";
 import { storeToRefs } from "pinia";
-import { onBeforeMount, onMounted, onUpdated, reactive, ref } from "vue";
+import { onMounted, onUpdated, reactive, ref } from "vue";
 import CityButton from "@/components/UI/CityButton.vue";
 import CityCard from "./components/UI/CityCard.vue";
 import TheNavigation from "./components/TheNavigation.vue";
@@ -74,6 +87,8 @@ const { getCities } = store;
 const { select, checkConfirm, places } = storeToRefs(store);
 const dbList: DBListInterface[] = reactive([]);
 const isCityListActive = ref(true);
+const snackbar = ref(false);
+const timeout = ref(2000);
 
 // actions
 const submitHandler = () => {
@@ -104,47 +119,7 @@ const cityButtonHandler = (index: number) => {
   })();
 };
 
-/* onMounted(() => {
-  // load data from localStorage
-  const listTmp = window.localStorage.getItem("rrdbListCities") as string;
-  if (listTmp) {
-    const parsed = JSON.parse(listTmp);
-    dbList.splice(0, parsed.length, ...parsed);
-  }
-  isCityListActive.value = false;   // hide the list
-
-  dbList.forEach((val: DBListInterface) => {
-    getCities(val.formatted_address);    // get data from web
-
-    console.log("places:", places.value[0].place_id);
-    console.log("dbList", dbList[0].place_id);
-
-    // find the same city from localStorage
-    const labelIndex = places.value.findIndex(
-      (item) => item.place_id === val.place_id
-    );
-    console.log("labelIndex:", labelIndex);
-
-    if (labelIndex >= 0) {
-      const tmp = places.value[labelIndex];
-
-      // get temps
-      (async () => {
-        const url = ref(
-          `https://api.open-meteo.com/v1/forecast?latitude=${tmp.latitude}&longitude=${tmp.longitude}&daily=temperature_2m_max,temperature_2m_min&current_weather=true&timezone=Europe%2FMoscow`
-        );
-        const response = await axios.get(url.value);
-
-       console.log(response.status);
-        // set temps
-        val.highest_temp = response.data.daily.temperature_2m_max[0];
-        val.lowest_temp = response.data.daily.temperature_2m_min[0];
-      })();
-    }
-  });
-}); */
-
-const updateCityList = () => {
+const updateCityList = async () => {
   // load data from localStorage
   const listTmp = window.localStorage.getItem("rrdbListCities") as string;
   if (listTmp) {
@@ -153,36 +128,38 @@ const updateCityList = () => {
   }
   isCityListActive.value = false; // hide the list
 
+  // create an array to hold all the API request promises
+  const requestPromises: Promise<any>[] = [];
+
+  // iterate over each city in dbList
   dbList.forEach((val: DBListInterface) => {
-    setTimeout(() => {
-      getCities(val.formatted_address); // get data from web
-    }, 1500);
-      
-      console.log("heeerreee");
-      
-    // find the same city from localStorage
-    const labelIndex = places.value.findIndex(
-      (item) => item.formatted_address === val.formatted_address
-    );
-    console.log("labelIndex:", labelIndex);
+    // create a promise that gets the temperature data for this city
+    const requestPromise = (async () => {
+      const url = ref(
+        `https://api.open-meteo.com/v1/forecast?latitude=${val.latitude}&longitude=${val.longitude}&daily=temperature_2m_max,temperature_2m_min&current_weather=true&timezone=Europe%2FMoscow`
+      );
+      const response = await axios.get(url.value);
 
-    if (labelIndex >= 0) {
-      const tmp = places.value[labelIndex];
-      
-      // get temps
-      (async () => {
-        const url = ref(
-          `https://api.open-meteo.com/v1/forecast?latitude=${tmp.latitude}&longitude=${tmp.longitude}&daily=temperature_2m_max,temperature_2m_min&current_weather=true&timezone=Europe%2FMoscow`
-          );
-          const response = await axios.get(url.value);
+      // set temps
+      val.highest_temp = response.data.daily.temperature_2m_max[0];
+      val.lowest_temp = response.data.daily.temperature_2m_min[0];
+    })();
 
-          console.log(response.status);
-          // set temps
-          val.highest_temp = response.data.daily.temperature_2m_max[0];
-          val.lowest_temp = response.data.daily.temperature_2m_min[0];
-      })();
-    }
+    // add the promise to the requestPromises array
+    requestPromises.push(requestPromise);
   });
+
+  // wait for all the promises to resolve before continuing
+  await Promise.all(requestPromises);
+  snackbar.value = true;
+  setTimeout(() => {
+    snackbar.value = false;
+  }, 2000);
+};
+
+const deleteCity = (id: string) => {
+  const updateList = dbList.filter((val) => val.place_id !== id);
+  dbList.splice(0, dbList.length, ...updateList);
 };
 
 onMounted(() => {
@@ -250,9 +227,6 @@ h1 {
   display: flex;
   flex-direction: column;
   width: 90vw;
-}
-.cityCardSection {
-  display: flex;
 }
 .save-update {
   width: 90vw;
