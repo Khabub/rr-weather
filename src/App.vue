@@ -36,7 +36,11 @@
       </div>
     </div>
     <div v-if="dbList.length" class="save-update">
-      <v-btn class="updateTemps" @click="updateCityList" size="x-small" color="primary"
+      <v-btn
+        class="updateTemps"
+        @click="updateCityList"
+        size="x-small"
+        color="primary"
         >Update the temps</v-btn
       >
     </div>
@@ -54,14 +58,12 @@
     <v-snackbar
       class="snack"
       color="success"
-      min-width="100"      
+      min-width="100"
       v-model="snackbar"
       :timeout="timeout"
     >
       Temps updated!
     </v-snackbar>
-
-
   </main>
 </template>
 
@@ -73,7 +75,6 @@ import { onMounted, onUpdated, reactive, ref } from "vue";
 import CityButton from "@/components/UI/CityButton.vue";
 import CityCard from "./components/UI/CityCard.vue";
 import TheNavigation from "./components/TheNavigation.vue";
-
 
 interface DBListInterface {
   formatted_address: string;
@@ -141,10 +142,10 @@ const updateCityList = async () => {
     // create a promise that gets the temperature data for this city
     const requestPromise = (async () => {
       const url = ref(
-        `https://api.open-meteo.com/v1/forecast?latitude=${val.latitude}&longitude=${val.longitude}&daily=temperature_2m_max,temperature_2m_min&current_weather=true&timezone=Europe%2FMoscow`
+        `https://api.open-meteo.com/v1/forecast?latitude=${val.latitude}&longitude=${val.longitude}&daily=temperature_2m_max,temperature_2m_min,rain_sum&current_weather=true&timezone=auto`
       );
       const response = await axios.get(url.value);
-
+      //console.log(response);
       // set temps
       val.highest_temp = response.data.daily.temperature_2m_max[0];
       val.lowest_temp = response.data.daily.temperature_2m_min[0];
@@ -157,6 +158,7 @@ const updateCityList = async () => {
 
   // wait for all the promises to resolve before continuing
   await Promise.all(requestPromises);
+
   snackbar.value = true;
   setTimeout(() => {
     snackbar.value = false;
