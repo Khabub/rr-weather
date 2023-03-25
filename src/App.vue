@@ -26,7 +26,7 @@
 
     <div v-if="isCityListActive">
       <div v-if="places.length > 0" class="city-list">
-        <h1>Choose address:</h1>
+        <h1 class="choose-address">Choose address:</h1>
         <ul v-for="(item, index) in places" :key="index">
           <CityButton
             :name="item.formatted_address"
@@ -35,8 +35,8 @@
         </ul>
       </div>
     </div>
-    <div class="save-update">
-      <v-btn @click="updateCityList" size="x-small" color="primary"
+    <div v-if="dbList.length" class="save-update">
+      <v-btn class="updateTemps" @click="updateCityList" size="x-small" color="primary"
         >Update the temps</v-btn
       >
     </div>
@@ -46,13 +46,15 @@
         :highestTemp="city.highest_temp"
         :lowestTemp="city.lowest_temp"
         :place_id="city.place_id"
+        :rain="city.rain"
         @deleteCity="deleteCity"
       />
     </section>
 
     <v-snackbar
+      class="snack"
       color="success"
-      min-width="100"
+      min-width="100"      
       v-model="snackbar"
       :timeout="timeout"
     >
@@ -72,6 +74,7 @@ import CityButton from "@/components/UI/CityButton.vue";
 import CityCard from "./components/UI/CityCard.vue";
 import TheNavigation from "./components/TheNavigation.vue";
 
+
 interface DBListInterface {
   formatted_address: string;
   place_id: string;
@@ -79,6 +82,7 @@ interface DBListInterface {
   lowest_temp: number;
   latitude: number;
   longitude: number;
+  rain: number;
 }
 
 // variables
@@ -104,10 +108,10 @@ const cityButtonHandler = (index: number) => {
 
   (async () => {
     const url = ref(
-      `https://api.open-meteo.com/v1/forecast?latitude=${tmp.latitude}&longitude=${tmp.longitude}&daily=temperature_2m_max,temperature_2m_min&current_weather=true&timezone=Europe%2FMoscow`
+      `https://api.open-meteo.com/v1/forecast?latitude=${tmp.latitude}&longitude=${tmp.longitude}&daily=temperature_2m_max,temperature_2m_min,rain_sum&current_weather=true&timezone=auto`
     );
     const response = await axios.get(url.value);
-
+    //console.log(response);
     dbList.push({
       formatted_address: tmp.formatted_address,
       place_id: tmp.place_id,
@@ -115,6 +119,7 @@ const cityButtonHandler = (index: number) => {
       lowest_temp: response.data.daily.temperature_2m_min[0],
       latitude: tmp.latitude,
       longitude: tmp.longitude,
+      rain: response.data.daily.rain_sum[0],
     });
   })();
 };
@@ -143,6 +148,7 @@ const updateCityList = async () => {
       // set temps
       val.highest_temp = response.data.daily.temperature_2m_max[0];
       val.lowest_temp = response.data.daily.temperature_2m_min[0];
+      val.rain = response.data.daily.rain_sum[0];
     })();
 
     // add the promise to the requestPromises array
@@ -209,7 +215,7 @@ onUpdated(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 2.5rem;
+  margin-top: 3rem;
   width: 90vw;
 }
 
@@ -227,11 +233,20 @@ h1 {
   display: flex;
   flex-direction: column;
   width: 90vw;
+  margin-bottom: 1rem;
 }
 .save-update {
   width: 90vw;
   display: flex;
   justify-content: space-evenly;
   margin-bottom: 0.5rem;
+}
+.choose-address {
+  font-size: 0.7rem;
+  margin-left: 0.1rem;
+}
+.updateTemps {
+  display: flex;
+  padding: 0.8rem;
 }
 </style>

@@ -4,13 +4,14 @@
       <div class="city-country">
         <p class="city-text">{{ props.city }}</p>
       </div>
-      <div class="teploty">
+      <div class="teploty">        
         <p>
-          Highest: <span>{{ props.highestTemp }}°C</span>
+          Highest: {{ props.highestTemp }}°C
         </p>
         <p>
-          Lowest: <span>{{ props.lowestTemp }}°C</span>
+          Lowest: {{ props.lowestTemp }}°C
         </p>
+        <p>Rain: {{ props.rain }}mm</p>
       </div>
       <SvgIcon
         class="cancel"
@@ -34,6 +35,7 @@ const props = defineProps({
   highestTemp: Number as PropType<number>,
   lowestTemp: Number as PropType<number>,
   place_id: String as PropType<string>,
+  rain: Number as PropType<number>,
 });
 
 const emit = defineEmits<{
@@ -60,6 +62,7 @@ const emit = defineEmits<{
   justify-content: space-evenly;
   align-items: center;
   font-size: 0.7rem;
+  padding: 0.2rem 0;
 }
 .city-country {
   display: flex;
@@ -74,7 +77,7 @@ const emit = defineEmits<{
 
 .cancel {
   position: absolute;
-  top: 10px;
+  top: 0;
   right: 1px;
   color: red;
   padding: 0.2rem;

@@ -35,7 +35,7 @@ const drawerHandler = () => {
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  padding: 0.2rem;
+  padding: 0.3rem;
 }
 .logo {
   padding-left: 1rem;

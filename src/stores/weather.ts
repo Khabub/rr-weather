@@ -33,6 +33,8 @@ export const useWeatherStore = defineStore("weather", () => {
     const url_name = ref(`/maps/api/geocode/json?address=${n}&key=${apiKey}`);
     const response_name = await http.get(url_name.value);
     const temp = response_name.data.results;
+
+    console.log(temp);
     
     if (response_name.status === 200) {
       console.log("Fetched data from google (rr)");
