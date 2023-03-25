@@ -2,8 +2,7 @@
   <slot>
     <main class="container">
       <div class="city-country">
-        <p class="city-text">{{ props.city }}</p>
-        <p class="cze-text">({{ props.country_code }})</p>
+        <p class="city-text">{{ props.city }}</p>        
       </div>
       <div class="teploty">
         <p>
@@ -39,40 +38,35 @@ const props = defineProps({
   box-shadow: 5px 5px 5px #a09c88;
   width: 90vw;
   display: flex;
+  flex-direction: column;
   justify-content: center;
-  background-color: #e4dba9;
-  margin-bottom: 1rem;
+  background-color: #e4dba9;  
+  margin-top: 1rem;
+  position: relative;
+  padding: 0.3rem 0;
 }
 
 .teploty {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  flex-grow: 1;
-  font-size: 0.8rem;
-  line-height: 1.2rem;
+  justify-content: space-evenly;
+  align-items: center;  
+  font-size: 0.7rem;  
 }
 .city-country {
-  display: flex;
-  flex-direction: column;
+  display: flex;  
   justify-content: center;
-  align-items: center;
-  flex-grow: 1;
-  padding: 0.2rem;
-}
-.cze-text {
-  font-size: 0.7rem;
+  align-items: center;  
 }
 
 .city-text {
+  font-size: 0.8rem;
   font-weight: 700;
 }
 
-.teploty span {
-  margin-left: 0.4rem;
-}
 .cancel {
+  position: absolute;
+  top: 10px;
+  right: 1px;
   color: red;
   padding: 0.2rem;
 }

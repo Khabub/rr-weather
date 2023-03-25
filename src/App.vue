@@ -22,24 +22,27 @@
         @click="submitHandler"
         >Confirm</v-btn
       >
-    </v-form>  
+    </v-form>
 
     <div v-if="isCityListActive">
       <div v-if="places.length > 0" class="city-list">
         <h1>Choose city:</h1>
         <ul v-for="(item, index) in places" :key="index">
           <CityButton
-            :name="item.name"
-            :country_code="item.country_code"
+            :name="item.formatted_address"
             @click="cityButtonHandler(index)"
           />
         </ul>
       </div>
     </div>
+    <div class="save-update">
+      <v-btn @click="updateCityList" size="x-small" color="primary"
+        >Update the temps</v-btn
+      >
+    </div>
     <section v-for="(city, index) in dbList" :key="index">
       <CityCard
-        :city="city.city"
-        :country_code="city.country_code"
+        :city="city.formatted_address"
         :highestTemp="city.highest_temp"
         :lowestTemp="city.lowest_temp"
       />
@@ -51,15 +54,14 @@
 import axios from "axios";
 import { useWeatherStore } from "./stores/weather";
 import { storeToRefs } from "pinia";
-import { onBeforeMount, onUpdated, reactive, ref } from "vue";
+import { onBeforeMount, onMounted, onUpdated, reactive, ref } from "vue";
 import CityButton from "@/components/UI/CityButton.vue";
 import CityCard from "./components/UI/CityCard.vue";
 import TheNavigation from "./components/TheNavigation.vue";
 
 interface DBListInterface {
-  city: string;
-  country_code: string;
-  label: string;
+  formatted_address: string;
+  place_id: string;
   highest_temp: number;
   lowest_temp: number;
   latitude: number;
@@ -80,32 +82,29 @@ const submitHandler = () => {
 };
 
 // after click, add the city to dbList
-const cityButtonHandler = (index: number) => {  
-  isCityListActive.value = false;   // hide the list
-  select.value = "";    // clear the input
+const cityButtonHandler = (index: number) => {
+  isCityListActive.value = false; // hide the list
+  select.value = ""; // clear the input
   const tmp = places.value[index];
 
   (async () => {
     const url = ref(
       `https://api.open-meteo.com/v1/forecast?latitude=${tmp.latitude}&longitude=${tmp.longitude}&daily=temperature_2m_max,temperature_2m_min&current_weather=true&timezone=Europe%2FMoscow`
     );
-    const response = await axios.get(url.value);    
+    const response = await axios.get(url.value);
 
     dbList.push({
-      city: tmp.name,
-      country_code: tmp.country_code,
-      label: tmp.label,
+      formatted_address: tmp.formatted_address,
+      place_id: tmp.place_id,
       highest_temp: response.data.daily.temperature_2m_max[0],
       lowest_temp: response.data.daily.temperature_2m_min[0],
       latitude: tmp.latitude,
       longitude: tmp.longitude,
     });
   })();
-
-  
 };
 
-onBeforeMount(() => {
+/* onMounted(() => {
   // load data from localStorage
   const listTmp = window.localStorage.getItem("rrdbListCities") as string;
   if (listTmp) {
@@ -115,12 +114,16 @@ onBeforeMount(() => {
   isCityListActive.value = false;   // hide the list
 
   dbList.forEach((val: DBListInterface) => {
-    getCities(val.city);    // get data from web
+    getCities(val.formatted_address);    // get data from web
+
+    console.log("places:", places.value[0].place_id);
+    console.log("dbList", dbList[0].place_id);
 
     // find the same city from localStorage
     const labelIndex = places.value.findIndex(
-      (item) => item.label === val.label
+      (item) => item.place_id === val.place_id
     );
+    console.log("labelIndex:", labelIndex);
 
     if (labelIndex >= 0) {
       const tmp = places.value[labelIndex];
@@ -132,12 +135,64 @@ onBeforeMount(() => {
         );
         const response = await axios.get(url.value);
 
+       console.log(response.status);
         // set temps
         val.highest_temp = response.data.daily.temperature_2m_max[0];
         val.lowest_temp = response.data.daily.temperature_2m_min[0];
       })();
     }
   });
+}); */
+
+const updateCityList = () => {
+  // load data from localStorage
+  const listTmp = window.localStorage.getItem("rrdbListCities") as string;
+  if (listTmp) {
+    const parsed = JSON.parse(listTmp);
+    dbList.splice(0, parsed.length, ...parsed);
+  }
+  isCityListActive.value = false; // hide the list
+
+  dbList.forEach((val: DBListInterface) => {
+    setTimeout(() => {
+      getCities(val.formatted_address); // get data from web
+    }, 1500);
+      
+      console.log("heeerreee");
+      
+    // find the same city from localStorage
+    const labelIndex = places.value.findIndex(
+      (item) => item.formatted_address === val.formatted_address
+    );
+    console.log("labelIndex:", labelIndex);
+
+    if (labelIndex >= 0) {
+      const tmp = places.value[labelIndex];
+      
+      // get temps
+      (async () => {
+        const url = ref(
+          `https://api.open-meteo.com/v1/forecast?latitude=${tmp.latitude}&longitude=${tmp.longitude}&daily=temperature_2m_max,temperature_2m_min&current_weather=true&timezone=Europe%2FMoscow`
+          );
+          const response = await axios.get(url.value);
+
+          console.log(response.status);
+          // set temps
+          val.highest_temp = response.data.daily.temperature_2m_max[0];
+          val.lowest_temp = response.data.daily.temperature_2m_min[0];
+      })();
+    }
+  });
+};
+
+onMounted(() => {
+  // load data from localStorage
+  const listTmp = window.localStorage.getItem("rrdbListCities") as string;
+  if (listTmp) {
+    const parsed = JSON.parse(listTmp);
+    dbList.splice(0, parsed.length, ...parsed);
+  }
+  isCityListActive.value = false; // hide the
 });
 
 onUpdated(() => {
@@ -198,5 +253,11 @@ h1 {
 }
 .cityCardSection {
   display: flex;
+}
+.save-update {
+  width: 90vw;
+  display: flex;
+  justify-content: space-evenly;
+  margin-bottom: 0.5rem;
 }
 </style>

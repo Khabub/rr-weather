@@ -1,7 +1,7 @@
 <template>
   <li>
     <v-btn class="button-city" variant="tonal" density="compact">
-      {{ props.name }} ({{ props.country_code }})
+      {{ props.name }}
     </v-btn>
   </li>
 </template>
@@ -10,8 +10,7 @@
 import type { PropType } from "vue";
 
 const props = defineProps({
-  name: String as PropType<string>,
-  country_code: String as PropType<string>,
+  name: String as PropType<string>,  
 });
 </script>
 
@@ -21,6 +20,6 @@ const props = defineProps({
   width: 95vw;
   display: flex;
   justify-content: flex-start;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
 }
 </style>

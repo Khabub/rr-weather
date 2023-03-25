@@ -1,3 +1,5 @@
+// chrome://net-internals/#events
+
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 
