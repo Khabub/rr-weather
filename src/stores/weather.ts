@@ -35,7 +35,7 @@ export const useWeatherStore = defineStore("weather", () => {
     const temp = response_name.data.results;
 
     //console.log(temp);
-    
+
     if (response_name.status === 200) {
       console.log("Fetched data from google (rr)");
     } else {

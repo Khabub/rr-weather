@@ -24,17 +24,20 @@
       >
     </v-form>
 
-    <div v-if="isCityListActive">
-      <div v-if="places.length > 0" class="city-list">
-        <h1 class="choose-address">Choose address:</h1>
-        <ul v-for="(item, index) in places" :key="index">
-          <CityButton
-            :name="item.formatted_address"
-            @click="cityButtonHandler(index)"
-          />
-        </ul>
+    <transition name="citybtn">
+      <div v-if="isCityListActive">
+        <div v-if="places.length > 0" class="city-list">
+          <h1 class="choose-address">Choose address:</h1>
+          <ul v-for="(item, index) in places" :key="index">
+            <CityButton
+              :name="item.formatted_address"
+              @click="cityButtonHandler(index)"
+            />
+          </ul>
+        </div>
       </div>
-    </div>
+    </transition>
+
     <div v-if="dbList.length" class="save-update">
       <v-btn
         class="updateTemps"
@@ -44,25 +47,35 @@
         >Update the temps</v-btn
       >
     </div>
-    <section v-for="(city, index) in dbList" :key="index">
-      <CityCard
-        :city="city.formatted_address"
-        :highestTemp="city.highest_temp"
-        :lowestTemp="city.lowest_temp"
-        :place_id="city.place_id"
-        :rain="city.rain"
-        @deleteCity="deleteCity"
-      />
-    </section>
+    <transition-group tag="section" name="citytr">
+      <section v-for="(city, index) in dbList" :key="index">
+        <CityCard
+          :city="city.formatted_address"
+          :highestTemp="city.highest_temp"
+          :lowestTemp="city.lowest_temp"
+          :place_id="city.place_id"
+          :rain="city.rain"
+          :temp_now="city.temp_now"
+          @deleteCity="deleteCity"
+        />
+      </section>
+    </transition-group>
 
-    <v-snackbar
-      class="snack"
+    <v-snackbar          
       color="success"
-      min-width="100"
+      min-width="250"
       v-model="snackbar"
       :timeout="timeout"
     >
-      Temps updated!
+    <span class="snack">Temps updated!</span>
+    </v-snackbar>
+    <v-snackbar         
+      color="error"  
+      min-width="290"    
+      v-model="snackbarDelete"
+      :timeout="timeout"
+    >
+      <span class="snack">{{ cityDeleted }} deleted!</span>
     </v-snackbar>
   </main>
 </template>
@@ -84,6 +97,7 @@ interface DBListInterface {
   latitude: number;
   longitude: number;
   rain: number;
+  temp_now: number;
 }
 
 // variables
@@ -93,7 +107,10 @@ const { select, checkConfirm, places } = storeToRefs(store);
 const dbList: DBListInterface[] = reactive([]);
 const isCityListActive = ref(true);
 const snackbar = ref(false);
+const snackbarDelete = ref(false);
 const timeout = ref(2000);
+const hours = ref(new Date().getHours());
+const cityDeleted = ref("");
 
 // actions
 const submitHandler = () => {
@@ -109,9 +126,10 @@ const cityButtonHandler = (index: number) => {
 
   (async () => {
     const url = ref(
-      `https://api.open-meteo.com/v1/forecast?latitude=${tmp.latitude}&longitude=${tmp.longitude}&daily=temperature_2m_max,temperature_2m_min,rain_sum&current_weather=true&timezone=auto`
+      `https://api.open-meteo.com/v1/forecast?latitude=${tmp.latitude}&longitude=${tmp.longitude}&daily=temperature_2m_max,temperature_2m_min,rain_sum&hourly=temperature_2m&current_weather=true&timezone=auto`
     );
     const response = await axios.get(url.value);
+
     //console.log(response);
     dbList.push({
       formatted_address: tmp.formatted_address,
@@ -121,10 +139,12 @@ const cityButtonHandler = (index: number) => {
       latitude: tmp.latitude,
       longitude: tmp.longitude,
       rain: response.data.daily.rain_sum[0],
+      temp_now: response.data.hourly.temperature_2m[hours.value],
     });
   })();
 };
 
+// update temps
 const updateCityList = async () => {
   // load data from localStorage
   const listTmp = window.localStorage.getItem("rrdbListCities") as string;
@@ -142,7 +162,7 @@ const updateCityList = async () => {
     // create a promise that gets the temperature data for this city
     const requestPromise = (async () => {
       const url = ref(
-        `https://api.open-meteo.com/v1/forecast?latitude=${val.latitude}&longitude=${val.longitude}&daily=temperature_2m_max,temperature_2m_min,rain_sum&current_weather=true&timezone=auto`
+        `https://api.open-meteo.com/v1/forecast?latitude=${val.latitude}&longitude=${val.longitude}&daily=temperature_2m_max,temperature_2m_min,rain_sum&hourly=temperature_2m&current_weather=true&timezone=auto`
       );
       const response = await axios.get(url.value);
       //console.log(response);
@@ -150,6 +170,7 @@ const updateCityList = async () => {
       val.highest_temp = response.data.daily.temperature_2m_max[0];
       val.lowest_temp = response.data.daily.temperature_2m_min[0];
       val.rain = response.data.daily.rain_sum[0];
+      val.temp_now = response.data.hourly.temperature_2m[hours.value];
     })();
 
     // add the promise to the requestPromises array
@@ -159,15 +180,21 @@ const updateCityList = async () => {
   // wait for all the promises to resolve before continuing
   await Promise.all(requestPromises);
 
+  // snackbar notifications
   snackbar.value = true;
   setTimeout(() => {
     snackbar.value = false;
   }, 2000);
 };
 
-const deleteCity = (id: string) => {
+const deleteCity = (id: string, city: string) => {
   const updateList = dbList.filter((val) => val.place_id !== id);
   dbList.splice(0, dbList.length, ...updateList);
+  snackbarDelete.value = true; 
+  cityDeleted.value = city;
+  setTimeout(() => {
+    snackbarDelete.value = false;
+  }, 2000);
 };
 
 onMounted(() => {
@@ -177,7 +204,7 @@ onMounted(() => {
     const parsed = JSON.parse(listTmp);
     dbList.splice(0, parsed.length, ...parsed);
   }
-  isCityListActive.value = false; // hide the
+  isCityListActive.value = false; // hide the list
 });
 
 onUpdated(() => {
@@ -211,6 +238,11 @@ onUpdated(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+}
+
+.snack {
+  display: flex;
   justify-content: center;
 }
 .form {
@@ -250,5 +282,63 @@ h1 {
 .updateTemps {
   display: flex;
   padding: 0.8rem;
+  animation: getIn 1s cubic-bezier(0, 1, 1, 1.2);
+}
+
+@keyframes getIn {
+  0% {
+    transform: translateX(200%) rotate(0);
+  }
+  50% {
+    transform: translateX(60%) rotate(10deg);
+  }
+  100% {
+    transform: translateX(0) rotate(0);
+  }
+}
+
+
+.citytr-enter-from {
+  opacity: 0;
+  transform: translateX(-300px);
+}
+.citytr-enter-active {
+  transition: all 0.8s ease-in;
+}
+.citytr-enter-to {
+  opacity: 1;
+}
+.citytr-leave-from {
+  opacity: 1;
+}
+.citytr-leave-active {
+  transition: all 0.8s ease-out;
+  position: absolute;
+}
+.citytr-leave-to {
+  opacity: 0;
+  transform: translateX(300px);
+}
+.citytr-move {
+  transition: all 0.7s ease;
+}
+
+.citybtn-enter-from {
+  opacity: 0;
+}
+.citybtn-enter-active {
+  transition: all 0.5s ease-in;
+}
+.citybtn-enter-to {
+  opacity: 1;
+}
+.citybtn-leave-from {
+  opacity: 1;
+}
+.citybtn-leave-active {
+  transition: all 0.5s ease-out;
+}
+.citybtn-leave-to {
+  opacity: 0;
 }
 </style>

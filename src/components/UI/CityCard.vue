@@ -1,26 +1,22 @@
 <template>
-  <slot>
-    <main class="container">
-      <div class="city-country">
-        <p class="city-text">{{ props.city }}</p>
-      </div>
-      <div class="teploty">        
-        <p>
-          Highest: {{ props.highestTemp }}°C
-        </p>
-        <p>
-          Lowest: {{ props.lowestTemp }}°C
-        </p>
-        <p>Rain: {{ props.rain }}mm</p>
-      </div>
-      <SvgIcon
-        class="cancel"
-        @click="emit('deleteCity', props.place_id as string)"
-        type="mdi"
-        :path="path"
-      />
-    </main>
-  </slot>
+  <slot></slot>
+  <main class="container">
+    <div class="city-country">
+      <p class="city-text">{{ props.city }}</p>
+    </div>
+    <div class="teploty">
+      <p>Now: {{ props.temp_now }}°C</p>
+      <p>High: {{ props.highestTemp }}°C</p>
+      <p>Low: {{ props.lowestTemp }}°C</p>
+      <p>Rain: {{ props.rain }}mm</p>
+    </div>
+    <SvgIcon
+      class="cancel"
+      @click="emit('deleteCity', props.place_id as string, props.city as string)"
+      type="mdi"
+      :path="path"
+    />    
+  </main>
 </template>
 
 <script setup lang="ts">
@@ -31,16 +27,21 @@ import { mdiClose } from "@mdi/js";
 const path = mdiClose;
 
 const props = defineProps({
-  city: String as PropType<string>,  
+  city: String as PropType<string>,
   highestTemp: Number as PropType<number>,
   lowestTemp: Number as PropType<number>,
   place_id: String as PropType<string>,
   rain: Number as PropType<number>,
+  temp_now: Number as PropType<number>,
 });
 
 const emit = defineEmits<{
-  (event: "deleteCity", id: string): void;
+  (event: "deleteCity", id: string, city: string): void;
 }>();
+
+
+
+
 </script>
 
 <style scoped>

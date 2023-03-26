@@ -5,7 +5,12 @@
         <p class="logo">rr-weather</p>
         <SvgIcon type="mdi" :path="path" @click="drawerHandler"></SvgIcon>
       </main>
-      <v-navigation-drawer v-model="drawer" location="bottom" width=40 temporary>        
+      <v-navigation-drawer
+        v-model="drawer"
+        location="bottom"
+        width="40"
+        temporary
+      >
         <p class="created">Created by Robert Rozehnal, 2023</p>
       </v-navigation-drawer>
     </v-layout>
@@ -21,7 +26,7 @@ const path = mdiMenu;
 const drawer = ref(false);
 
 const drawerHandler = () => {
-  drawer.value = !drawer.value;  
+  drawer.value = !drawer.value;
 };
 </script>
 

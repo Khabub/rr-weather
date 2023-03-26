@@ -10,7 +10,7 @@
 import type { PropType } from "vue";
 
 const props = defineProps({
-  name: String as PropType<string>,  
+  name: String as PropType<string>,
 });
 </script>
 
