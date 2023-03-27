@@ -12,10 +12,12 @@
     </div>
     <SvgIcon
       class="cancel"
-      @click="emit('deleteCity', props.place_id as string, props.city as string)"
+      @click="
+        emit('deleteCity', props.place_id as string, props.city as string)
+      "
       type="mdi"
       :path="path"
-    />    
+    />
   </main>
 </template>
 
@@ -38,10 +40,6 @@ const props = defineProps({
 const emit = defineEmits<{
   (event: "deleteCity", id: string, city: string): void;
 }>();
-
-
-
-
 </script>
 
 <style scoped>
@@ -49,6 +47,7 @@ const emit = defineEmits<{
   border-radius: 0.4rem;
   box-shadow: 5px 5px 5px #a09c88;
   width: 90vw;
+  max-width: 400px;
   display: flex;
   flex-direction: column;
   justify-content: center;

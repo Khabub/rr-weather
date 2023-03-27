@@ -3,9 +3,9 @@
     <v-layout>
       <main class="container">
         <p class="logo">rr-weather</p>
-        <SvgIcon type="mdi" :path="path" @click="drawerHandler"></SvgIcon>
+        <SvgIcon class="svg-icon" type="mdi" :path="path" @click="drawerHandler"></SvgIcon>
       </main>
-      <v-navigation-drawer
+      <v-navigation-drawer        
         v-model="drawer"
         location="bottom"
         width="40"
@@ -22,12 +22,18 @@ import SvgIcon from "@jamescoyle/vue-icon";
 import { mdiMenu } from "@mdi/js";
 import { ref } from "vue";
 
+
 const path = mdiMenu;
 const drawer = ref(false);
 
 const drawerHandler = () => {
   drawer.value = !drawer.value;
 };
+
+defineExpose({
+  drawer,
+  drawerHandler
+});
 </script>
 
 <style scoped>

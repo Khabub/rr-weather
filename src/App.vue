@@ -61,21 +61,29 @@
       </section>
     </transition-group>
 
-    <v-snackbar          
+    <v-snackbar
       color="success"
       min-width="250"
       v-model="snackbar"
       :timeout="timeout"
     >
-    <span class="snack">Temps updated!</span>
+      <span class="snack">Temps updated!</span>
     </v-snackbar>
-    <v-snackbar         
-      color="error"  
-      min-width="290"    
+    <v-snackbar
+      color="error"
+      min-width="290"
       v-model="snackbarDelete"
       :timeout="timeout"
     >
       <span class="snack">{{ cityDeleted }} deleted!</span>
+    </v-snackbar>
+    <v-snackbar
+      color="error"
+      min-width="290"
+      v-model="snackError"
+      :timeout="timeout"
+    >
+      <span class="snack">Error: {{ error }}</span>
     </v-snackbar>
   </main>
 </template>
@@ -84,7 +92,7 @@
 import axios from "axios";
 import { useWeatherStore } from "./stores/weather";
 import { storeToRefs } from "pinia";
-import { onMounted, onUpdated, reactive, ref } from "vue";
+import { onMounted, onUpdated, reactive, ref, type Ref } from "vue";
 import CityButton from "@/components/UI/CityButton.vue";
 import CityCard from "./components/UI/CityCard.vue";
 import TheNavigation from "./components/TheNavigation.vue";
@@ -111,11 +119,19 @@ const snackbarDelete = ref(false);
 const timeout = ref(2000);
 const hours = ref(new Date().getHours());
 const cityDeleted = ref("");
+const snackError = ref(false);
+const error = ref("");
 
 // actions
 const submitHandler = () => {
   isCityListActive.value = true;
   getCities(select.value);
+};
+
+const timeoutFce = (val: Ref<boolean>) => {
+  setTimeout(() => {
+    val.value = false;
+  }, 2000);
 };
 
 // after click, add the city to dbList
@@ -125,22 +141,29 @@ const cityButtonHandler = (index: number) => {
   const tmp = places.value[index];
 
   (async () => {
-    const url = ref(
-      `https://api.open-meteo.com/v1/forecast?latitude=${tmp.latitude}&longitude=${tmp.longitude}&daily=temperature_2m_max,temperature_2m_min,rain_sum&hourly=temperature_2m&current_weather=true&timezone=auto`
-    );
-    const response = await axios.get(url.value);
+    try {
+      const url = ref(
+        `https://api.open-meteo.com/v1/forecast?latitude=${tmp.latitude}&longitude=${tmp.longitude}&daily=temperature_2m_max,temperature_2m_min,rain_sum&hourly=temperature_2m&current_weather=true&timezone=auto`
+      );
+      const response = await axios.get(url.value);
 
-    //console.log(response);
-    dbList.push({
-      formatted_address: tmp.formatted_address,
-      place_id: tmp.place_id,
-      highest_temp: response.data.daily.temperature_2m_max[0],
-      lowest_temp: response.data.daily.temperature_2m_min[0],
-      latitude: tmp.latitude,
-      longitude: tmp.longitude,
-      rain: response.data.daily.rain_sum[0],
-      temp_now: response.data.hourly.temperature_2m[hours.value],
-    });
+      //console.log(response);
+      dbList.push({
+        formatted_address: tmp.formatted_address,
+        place_id: tmp.place_id,
+        highest_temp: response.data.daily.temperature_2m_max[0],
+        lowest_temp: response.data.daily.temperature_2m_min[0],
+        latitude: tmp.latitude,
+        longitude: tmp.longitude,
+        rain: response.data.daily.rain_sum[0],
+        temp_now: response.data.hourly.temperature_2m[hours.value],
+      });
+    } catch (err) {
+      snackError.value = true;
+      error.value = (err as Error).message;
+      timeoutFce(snackError);
+      console.error(err);
+    }
   })();
 };
 
@@ -161,16 +184,23 @@ const updateCityList = async () => {
   dbList.forEach((val: DBListInterface) => {
     // create a promise that gets the temperature data for this city
     const requestPromise = (async () => {
-      const url = ref(
-        `https://api.open-meteo.com/v1/forecast?latitude=${val.latitude}&longitude=${val.longitude}&daily=temperature_2m_max,temperature_2m_min,rain_sum&hourly=temperature_2m&current_weather=true&timezone=auto`
-      );
-      const response = await axios.get(url.value);
-      //console.log(response);
-      // set temps
-      val.highest_temp = response.data.daily.temperature_2m_max[0];
-      val.lowest_temp = response.data.daily.temperature_2m_min[0];
-      val.rain = response.data.daily.rain_sum[0];
-      val.temp_now = response.data.hourly.temperature_2m[hours.value];
+      try {
+        const url = ref(
+          `https://api.open-meteo.com/v1/forecast?latitude=${val.latitude}&longitude=${val.longitude}&daily=temperature_2m_max,temperature_2m_min,rain_sum&hourly=temperature_2m&current_weather=true&timezone=auto`
+        );
+        const response = await axios.get(url.value);
+        //console.log(response);
+        // set temps
+        val.highest_temp = response.data.daily.temperature_2m_max[0];
+        val.lowest_temp = response.data.daily.temperature_2m_min[0];
+        val.rain = response.data.daily.rain_sum[0];
+        val.temp_now = response.data.hourly.temperature_2m[hours.value];
+      } catch (err) {
+        snackError.value = true;
+        error.value = (err as Error).message;
+        timeoutFce(snackError);
+        console.error(err);
+      }
     })();
 
     // add the promise to the requestPromises array
@@ -182,19 +212,15 @@ const updateCityList = async () => {
 
   // snackbar notifications
   snackbar.value = true;
-  setTimeout(() => {
-    snackbar.value = false;
-  }, 2000);
+  timeoutFce(snackbar);
 };
 
 const deleteCity = (id: string, city: string) => {
   const updateList = dbList.filter((val) => val.place_id !== id);
   dbList.splice(0, dbList.length, ...updateList);
-  snackbarDelete.value = true; 
+  snackbarDelete.value = true;
   cityDeleted.value = city;
-  setTimeout(() => {
-    snackbarDelete.value = false;
-  }, 2000);
+  timeoutFce(snackbarDelete);
 };
 
 onMounted(() => {
@@ -296,7 +322,6 @@ h1 {
     transform: translateX(0) rotate(0);
   }
 }
-
 
 .citytr-enter-from {
   opacity: 0;
