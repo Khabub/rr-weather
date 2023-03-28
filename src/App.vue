@@ -264,7 +264,7 @@ onUpdated(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: center;  
 }
 
 .snack {
@@ -277,6 +277,12 @@ onUpdated(() => {
   align-items: center;
   margin-top: 3rem;
   width: 90vw;
+}
+
+@media (min-width: 440px) {
+  .form {
+    width: 400px;
+  }  
 }
 
 .submit {
